@@ -13,12 +13,12 @@ pub enum Mapping {
 }
 
 pub const MAPPINGS: [(Mapping, &str); 6] = [
-    (Mapping::Screen, "map: screen"),
-    (Mapping::ScreenOffset, "map: screen+offset"),
-    (Mapping::Texel, "map: texel"),
-    (Mapping::MotionWarp, "map: motion warp"),
-    (Mapping::Cube, "map: cube"),
-    (Mapping::Sphere, "map: sphere"),
+    (Mapping::Screen, "screen"),
+    (Mapping::ScreenOffset, "screen+offset"),
+    (Mapping::Texel, "texel"),
+    (Mapping::MotionWarp, "motion warp"),
+    (Mapping::Cube, "cube"),
+    (Mapping::Sphere, "sphere"),
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -30,10 +30,10 @@ pub enum ViewMode {
 }
 
 pub const VIEW_MODES: [(ViewMode, &str); 4] = [
-    (ViewMode::Output, "view: 1-bit output"),
-    (ViewMode::Source, "view: 8-bit source"),
-    (ViewMode::Pattern, "view: dither pattern"),
-    (ViewMode::FlatGray, "view: flat gray"),
+    (ViewMode::Output, "1-bit output"),
+    (ViewMode::Source, "8-bit source"),
+    (ViewMode::Pattern, "dither pattern"),
+    (ViewMode::FlatGray, "flat gray"),
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -44,9 +44,9 @@ pub enum PatternMode {
 }
 
 pub const PATTERN_MODES: [(PatternMode, &str); 3] = [
-    (PatternMode::PerObject, "pattern: per object"),
-    (PatternMode::Bayer, "pattern: bayer"),
-    (PatternMode::BlueNoise, "pattern: blue noise"),
+    (PatternMode::PerObject, "per object"),
+    (PatternMode::Bayer, "bayer"),
+    (PatternMode::BlueNoise, "blue noise"),
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -57,17 +57,14 @@ pub enum Fit {
     Analog,
 }
 
-pub const FITS: [(Fit, &str); 2] = [
-    (Fit::Digital, "display: digital"),
-    (Fit::Analog, "display: analog"),
-];
+pub const FITS: [(Fit, &str); 2] = [(Fit::Digital, "digital"), (Fit::Analog, "analog")];
 
 /// (name, dark, light) in sRGB.
 pub const PALETTES: [(&str, [u8; 3], [u8; 3]); 4] = [
-    ("palette: obra dinn", [0x33, 0x33, 0x19], [0xe5, 0xff, 0xff]),
-    ("palette: 1-bit", [0x00, 0x00, 0x00], [0xff, 0xff, 0xff]),
-    ("palette: amber", [0x28, 0x18, 0x08], [0xff, 0xb8, 0x40]),
-    ("palette: green", [0x10, 0x20, 0x14], [0x40, 0xff, 0x80]),
+    ("obra dinn", [0x33, 0x33, 0x19], [0xe5, 0xff, 0xff]),
+    ("1-bit", [0x00, 0x00, 0x00], [0xff, 0xff, 0xff]),
+    ("amber", [0x28, 0x18, 0x08], [0xff, 0xb8, 0x40]),
+    ("green", [0x10, 0x20, 0x14], [0x40, 0xff, 0x80]),
 ];
 
 #[derive(Resource, Clone, Debug, PartialEq)]

@@ -21,8 +21,9 @@ use bevy::camera::{Exposure, Hdr, RenderTarget};
 use bevy::image::ImageSampler;
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::view::{DebandDither, Msaa, Tonemapping};
-use bevy::ui::IsDefaultUiCamera;
 use bevy::window::PrimaryWindow;
+
+use bevy_egui::PrimaryEguiContext;
 
 use std::f32::consts::{PI, TAU};
 
@@ -50,7 +51,7 @@ impl Plugin for DitherPlugin {
             Update,
             (update_dither_pass, update_display_pass, update_texel_mode)
                 .after(camera::update_camera)
-                .after(ui::apply_widgets),
+                .after(ui::keyboard_shortcuts),
         );
     }
 }
@@ -169,14 +170,14 @@ fn populate_pipeline(
         RenderLayers::layer(LAYER_DITHER),
     ));
 
-    // display pass: upscaled quad + palette in the window, also hosts the ui
+    // display pass: upscaled quad + palette in the window, also hosts the egui panel
     let display_material = display_materials.add(DisplayMaterial {
         params: DisplayParams::default(),
         source_texture: dither_images[0].clone(),
     });
     commands.spawn((
         DisplayCamera,
-        IsDefaultUiCamera,
+        PrimaryEguiContext,
         Camera2d,
         Camera {
             order: 2,
