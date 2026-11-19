@@ -80,6 +80,7 @@ pub struct DitherSettings {
     pub edges: bool,
     pub palette: usize,
     pub fit: Fit,
+    pub probe: bool,
 }
 
 impl DitherSettings {
@@ -94,6 +95,7 @@ impl DitherSettings {
             edges: true,
             palette: 0,
             fit: Fit::Digital,
+            probe: true,
         }
     }
 
@@ -108,6 +110,7 @@ impl DitherSettings {
             edges: true,
             palette: 0,
             fit: Fit::Analog,
+            probe: true,
         }
     }
 

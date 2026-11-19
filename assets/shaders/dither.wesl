@@ -1,6 +1,8 @@
 //! Post-processing pass: converts the 8-bit scene to 1-bit at the output resolution by comparing
 //! each source pixel to a dither pattern. The pattern mappings follow the devlog experiments:
 //! screen, screen with offset, texel space, motion warping, cube and sphere mapping.
+//! An optional probe disc thresholds flat gray with the bayer matrix, like the inset in the
+//! devlog captures, to show how the current mapping moves the pattern.
 //!
 //! Output: r = value, gb = motion warp residual, a = view depth.
 
@@ -14,6 +16,9 @@ struct DitherParams {
     tan_half_fov: vec2<f32>,
     screen_offset: vec2<f32>,
     screen_offset_delta: vec2<f32>,
+    probe_center: vec2<f32>,
+    probe_radius: f32,
+    probe_gray: f32,
     supersample: u32,
     mapping: u32,
     view_mode: u32,
@@ -21,6 +26,7 @@ struct DitherParams {
     edges: u32,
     final_threshold: u32,
     reset: u32,
+    probe: u32,
 }
 
 const MAPPING_SCREEN: u32 = 0u;
@@ -59,6 +65,11 @@ fn use_bayer(object_pattern: f32) -> bool {
         return false;
     }
     return object_pattern > 0.5;
+}
+
+/// Position in output pixels.
+fn in_probe(position: vec2<f32>) -> bool {
+    return params.probe != 0u && length(position - params.probe_center) < params.probe_radius;
 }
 
 /// Wraps to [-STATE_WRAP / 2, STATE_WRAP / 2[, the patterns tile so this is lossless.
@@ -208,6 +219,12 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let scene_pixel = pixel * supersample + subpixel;
             let scene_position = vec2<f32>(scene_pixel) + 0.5;
             let sample = load_scene(scene_pixel);
+            var luma = sample.r;
+            var object_pattern = sample.g;
+            if in_probe(scene_position / f32(supersample)) {
+                luma = params.probe_gray;
+                object_pattern = 1.0;
+            }
 
             var coord = scene_position;
             switch params.mapping {
@@ -229,18 +246,18 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
                 bayer_texture,
                 blue_noise_texture,
                 coord,
-                use_bayer(sample.g),
+                use_bayer(object_pattern),
             );
 
             if params.mapping == MAPPING_TEXEL || params.view_mode == VIEW_SOURCE {
                 // texel space thresholding already happened in the scene pass
-                value += sample.r;
+                value += luma;
             } else if params.view_mode == VIEW_PATTERN {
                 value += threshold;
             } else if params.view_mode == VIEW_FLAT_GRAY {
                 value += select(0.0, 1.0, 0.5 > threshold);
             } else {
-                value += select(0.0, 1.0, sample.r > threshold);
+                value += select(0.0, 1.0, luma > threshold);
             }
         }
     }
@@ -252,7 +269,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     }
 
     let is_scene_view = params.view_mode == VIEW_OUTPUT || params.view_mode == VIEW_SOURCE;
-    if params.edges != 0u && is_scene_view && is_edge(pixel, center.b) {
+    let pixel_in_probe = in_probe(vec2<f32>(pixel) + 0.5);
+    if params.edges != 0u && is_scene_view && !pixel_in_probe && is_edge(pixel, center.b) {
         value = line_value(pixel);
     }
 

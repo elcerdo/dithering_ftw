@@ -16,10 +16,11 @@ pub struct DitherParams {
     pub prev_clip_from_world: Mat4,
     pub output_size: Vec2,
     pub tan_half_fov: Vec2,
-    /// Screen mapping offset following the camera rotation, in output pixels.
     pub screen_offset: Vec2,
-    /// Previous minus current offset, unwrapped.
     pub screen_offset_delta: Vec2,
+    pub probe_center: Vec2,
+    pub probe_radius: f32,
+    pub probe_gray: f32,
     pub supersample: u32,
     pub mapping: u32,
     pub view_mode: u32,
@@ -27,6 +28,7 @@ pub struct DitherParams {
     pub edges: u32,
     pub final_threshold: u32,
     pub reset: u32,
+    pub probe: u32,
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]

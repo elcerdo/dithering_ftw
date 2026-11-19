@@ -17,11 +17,11 @@ const HELP: &str = "\
 B pattern   P palette
 F display   X supersample
 T threshold   E edges
+C probe   H hide ui
 F1 digital   F2 analog
 RMB drag/arrows look
 WASD walk   space auto pan
-M move sphere   H hide ui
-F12 snapshot";
+M move sphere   F12 snapshot";
 
 pub struct UiPlugin;
 
@@ -56,6 +56,7 @@ pub struct UiState {
     supersample: Entity,
     final_threshold: Entity,
     edges: Entity,
+    probe: Entity,
     auto_pan: Entity,
     move_sphere: Entity,
 }
@@ -110,6 +111,7 @@ fn populate_ui(mut commands: Commands, camera_settings: Res<CameraSettings>) {
     let final_threshold =
         checkbox::make(&mut ui_frame, "final threshold", settings.final_threshold);
     let edges = checkbox::make(&mut ui_frame, "edges", settings.edges);
+    let probe = checkbox::make(&mut ui_frame, "pattern probe", settings.probe);
     let auto_pan = checkbox::make(&mut ui_frame, "auto pan", camera_settings.auto_pan);
     let move_sphere = checkbox::make(&mut ui_frame, "move sphere", false);
 
@@ -126,6 +128,7 @@ fn populate_ui(mut commands: Commands, camera_settings: Res<CameraSettings>) {
         supersample,
         final_threshold,
         edges,
+        probe,
         auto_pan,
         move_sphere,
     });
@@ -195,6 +198,7 @@ fn keyboard_shortcuts(
         (KeyCode::KeyX, ui_state.supersample),
         (KeyCode::KeyT, ui_state.final_threshold),
         (KeyCode::KeyE, ui_state.edges),
+        (KeyCode::KeyC, ui_state.probe),
         (KeyCode::Space, ui_state.auto_pan),
         (KeyCode::KeyM, ui_state.move_sphere),
     ];
@@ -250,6 +254,7 @@ pub fn apply_widgets(
         supersample: checked(ui_state.supersample),
         final_threshold: checked(ui_state.final_threshold),
         edges: checked(ui_state.edges),
+        probe: checked(ui_state.probe),
     };
     settings.set_if_neq(new_settings);
     camera_settings.auto_pan = checked(ui_state.auto_pan);

@@ -7,6 +7,7 @@ use crate::patterns::DitherPatterns;
 use bevy::prelude::*;
 
 use bevy::asset::RenderAssetUsages;
+use bevy::light::NotShadowCaster;
 use bevy::mesh::{Indices, PrimitiveTopology};
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU};
@@ -14,6 +15,9 @@ use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU};
 const WOOD: f32 = 0.45;
 const DARK_WOOD: f32 = 0.3;
 const IRON: f32 = 0.15;
+const BRASS: f32 = 0.7;
+/// Pulls faces of overlapping parts apart so they don't z-fight.
+const INSET: f32 = 0.004;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -51,6 +55,18 @@ impl Builder<'_, '_, '_> {
         }
         entity.id()
     }
+
+    /// Room shell part, it lets the light in from outside the cabin.
+    pub fn shell_part(
+        &mut self,
+        mesh: impl Into<Mesh>,
+        transform: Transform,
+        look: &SceneLook,
+    ) -> Entity {
+        let entity = self.part(None, mesh, transform, look);
+        self.commands.entity(entity).insert(NotShadowCaster);
+        entity
+    }
 }
 
 fn wood(gray: f32) -> SceneLook {
@@ -59,7 +75,7 @@ fn wood(gray: f32) -> SceneLook {
 
 //////////////////////////////////////////////////////////////////////
 
-/// Two walls meeting at the corner plus the rest of the cabin to close it.
+/// Back wall facing the camera plus the rest of the cabin to close it.
 pub fn populate_room(builder: &mut Builder, room_min: Vec3, room_max: Vec3) {
     let size = room_max - room_min;
     let center = (room_min + room_max) / 2.0;
@@ -96,39 +112,35 @@ pub fn populate_room(builder: &mut Builder, room_min: Vec3, room_max: Vec3) {
     ];
     for (transform, width) in walls {
         let look = wall_look(width);
-        builder.part(None, Rectangle::new(width, size.y), transform, &look);
+        builder.shell_part(Rectangle::new(width, size.y), transform, &look);
     }
 
     // ceiling and beams
-    builder.part(
-        None,
+    builder.shell_part(
         Rectangle::new(size.x, size.z),
         Transform::from_xyz(center.x, room_max.y, center.z)
             .with_rotation(Quat::from_rotation_x(FRAC_PI_2)),
         &wood(0.35),
     );
     for beam_z in [-1.4, 0.2, 1.8] {
-        builder.part(
-            None,
+        builder.shell_part(
             Cuboid::new(size.x, 0.16, 0.14),
             Transform::from_xyz(center.x, room_max.y - 0.08, beam_z),
             &wood(DARK_WOOD),
         );
     }
 
-    // floor planks running along x with staggered joints
+    // floor planks running toward the back wall with staggered joints
     let plank_width = 0.2;
-    let num_planks = (size.z / plank_width).ceil() as usize;
+    let num_planks = (size.x / plank_width).ceil() as usize;
     for index in 0..num_planks {
-        let zz = room_min.z + (index as f32 + 0.5) * plank_width;
-        let joint = room_min.x + size.x * (0.25 + 0.5 * ((index * 7) % 5) as f32 / 4.0);
-        for (start, end) in [(room_min.x, joint), (joint, room_max.x)] {
-            let gray =
-                0.5 + 0.08 * (((index * 13 + (start * 10.0) as usize) % 5) as f32 / 4.0 - 0.5);
-            builder.part(
-                None,
-                Cuboid::new(end - start - 0.004, 0.04, plank_width - 0.006),
-                Transform::from_xyz((start + end) / 2.0, -0.02, zz),
+        let xx = room_min.x + (index as f32 + 0.5) * plank_width;
+        let joint = room_min.z + size.z * (0.25 + 0.5 * ((index * 7) % 5) as f32 / 4.0);
+        for (start, end) in [(room_min.z, joint), (joint, room_max.z)] {
+            let gray = 0.5 + 0.08 * (((index * 13 + (end * 10.0) as usize) % 5) as f32 / 4.0 - 0.5);
+            builder.shell_part(
+                Cuboid::new(plank_width - 0.006, 0.04, end - start - 0.004),
+                Transform::from_xyz(xx, -0.02, (start + end) / 2.0),
                 &SceneLook {
                     gray,
                     texel_scale: 64.0 * (end - start),
@@ -139,10 +151,26 @@ pub fn populate_room(builder: &mut Builder, room_min: Vec3, room_max: Vec3) {
     }
 }
 
+/// Vertical wooden post against a wall, front facing local +z.
+pub fn populate_post(builder: &mut Builder, transform: Transform, height: f32) {
+    builder.part(
+        None,
+        Cuboid::new(0.14, height, 0.06),
+        transform * Transform::from_xyz(0.0, height / 2.0, 0.03),
+        &SceneLook {
+            gray: 0.6,
+            texel_scale: 48.0 * height,
+            ..default()
+        },
+    );
+}
+
 /// The sphere on a stand, the only object dithered with the bayer matrix.
 pub fn populate_sphere_stand(builder: &mut Builder, transform: Transform) -> Entity {
     let root = builder.root(transform);
     let iron = wood(IRON);
+    let radius = 0.37;
+    let center_height = 1.35;
     builder.part(
         Some(root),
         Cylinder::new(0.14, 0.03),
@@ -151,17 +179,17 @@ pub fn populate_sphere_stand(builder: &mut Builder, transform: Transform) -> Ent
     );
     builder.part(
         Some(root),
-        Cylinder::new(0.012, 1.2),
-        Transform::from_xyz(0.0, 0.6, 0.0),
+        Cylinder::new(0.012, center_height),
+        Transform::from_xyz(0.0, center_height / 2.0, 0.0),
         &iron,
     );
     builder.part(
         Some(root),
-        Sphere::new(0.32).mesh().uv(48, 24),
-        Transform::from_xyz(0.0, 1.5, 0.0),
+        Sphere::new(radius).mesh().uv(48, 24),
+        Transform::from_xyz(0.0, center_height, 0.0),
         &SceneLook {
-            gray: 0.6,
-            roughness: 0.45,
+            gray: 0.5,
+            roughness: 0.8,
             pattern: ObjectPattern::Bayer,
             texel_scale: 96.0,
             ..default()
@@ -221,8 +249,8 @@ pub fn populate_chair(builder: &mut Builder, transform: Transform) {
 pub fn populate_barrel(builder: &mut Builder, transform: Transform) {
     let root = builder.root(transform);
     let height = 0.85;
-    let radius_end = 0.28;
-    let radius_mid = 0.34;
+    let radius_end = 0.30;
+    let radius_mid = 0.36;
     let radius_at = |yy: f32| radius_end + (radius_mid - radius_end) * (PI * yy / height).sin();
     builder.part(
         Some(root),
@@ -309,41 +337,42 @@ pub fn populate_frame(builder: &mut Builder, transform: Transform) {
 /// Sea chest with a curved lid, iron straps and a lock, front facing local +z.
 pub fn populate_chest(builder: &mut Builder, transform: Transform) {
     let root = builder.root(transform);
-    let (width, height, depth) = (1.1, 0.45, 0.6);
+    let (width, height, depth) = (1.3, 0.45, 0.6);
     let lid_rotation = Quat::from_rotation_z(FRAC_PI_2);
     builder.part(
         Some(root),
         Cuboid::new(width, height, depth),
         Transform::from_xyz(0.0, height / 2.0, 0.0),
-        &wood(0.35),
+        &wood(0.2),
     );
-    // the lower half of the lid cylinder hides inside the box
+    // the lower half of the lid cylinder hides inside the box, its caps stay inside the box sides
     builder.part(
         Some(root),
-        Cylinder::new(depth / 2.0, width),
+        Cylinder::new(depth / 2.0, width - 2.0 * INSET),
         Transform::from_xyz(0.0, height, 0.0).with_rotation(lid_rotation),
-        &wood(0.4),
+        &wood(0.45),
     );
-    for xx in [-0.3, 0.3] {
+    for xx in [-0.35, 0.35] {
         builder.part(
             Some(root),
             Cuboid::new(0.07, height + 0.005, depth + 0.012),
             Transform::from_xyz(xx, height / 2.0, 0.0),
-            &wood(IRON),
+            &wood(BRASS),
         );
         builder.part(
             Some(root),
-            Cylinder::new(depth / 2.0 + 0.006, 0.07),
+            Cylinder::new(depth / 2.0 + 0.006, 0.07 - 2.0 * INSET),
             Transform::from_xyz(xx, height, 0.0).with_rotation(lid_rotation),
-            &wood(IRON),
+            &wood(BRASS),
+        );
+        // hasp hanging over the strap
+        builder.part(
+            Some(root),
+            Cuboid::new(0.05, 0.1, 0.02),
+            Transform::from_xyz(xx, height - 0.1, depth / 2.0 + 0.016),
+            &wood(BRASS),
         );
     }
-    builder.part(
-        Some(root),
-        Cuboid::new(0.12, 0.15, 0.02),
-        Transform::from_xyz(0.0, height - 0.08, depth / 2.0 + 0.01),
-        &wood(IRON),
-    );
     for xx in [-1.0, 1.0] {
         builder.part(
             Some(root),

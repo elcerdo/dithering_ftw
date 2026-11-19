@@ -28,11 +28,15 @@ use std::f32::consts::{PI, TAU};
 
 /// Final 1-bit resolution, as in the devlog.
 pub const OUTPUT_SIZE: UVec2 = UVec2::new(800, 450);
-pub const FOV_Y: f32 = 60.0 * PI / 180.0;
+pub const FOV_Y: f32 = 45.0 * PI / 180.0;
 const CAMERA_NEAR: f32 = 0.05;
 const EXPOSURE_EV100: f32 = 7.0;
 const LAYER_DITHER: usize = 1;
 const LAYER_DISPLAY: usize = 2;
+/// Probe disc in the bottom left corner, touching the bottom edge like in the devlog captures.
+const PROBE_RADIUS: f32 = 60.0;
+const PROBE_CENTER: Vec2 = Vec2::new(57.0, OUTPUT_SIZE.y as f32 - PROBE_RADIUS);
+const PROBE_GRAY: f32 = 0.25;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -274,6 +278,9 @@ fn update_dither_pass(
             // the patterns tile every 128 pixels, wrap to keep float precision
             screen_offset: screen_offset - 128.0 * (screen_offset / 128.0).floor(),
             screen_offset_delta,
+            probe_center: PROBE_CENTER,
+            probe_radius: PROBE_RADIUS,
+            probe_gray: PROBE_GRAY,
             supersample: if settings.supersample { 2 } else { 1 },
             mapping: settings.mapping as u32,
             view_mode: settings.view as u32,
@@ -281,6 +288,8 @@ fn update_dither_pass(
             edges: settings.edges as u32,
             final_threshold: settings.final_threshold as u32,
             reset: reset as u32,
+            // texel space mapping has no screen space pattern to show
+            probe: (settings.probe && settings.mapping != Mapping::Texel) as u32,
         };
         material.scene_texture = scene_image;
         material.previous_texture = previous_image;

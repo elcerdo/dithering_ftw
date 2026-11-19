@@ -1,5 +1,5 @@
-//! The devlog test scene: a corner of a ship cabin with a chair, a sphere on a stand,
-//! a barrel, a bench, a framed picture, a sea chest and a wall shelf.
+//! The devlog test scene: a ship cabin wall with a framed picture, a barrel, a sphere on a stand,
+//! a chair, a sea chest, a wall shelf and a bench.
 
 mod props;
 
@@ -9,13 +9,15 @@ use crate::patterns::DitherPatterns;
 
 use bevy::prelude::*;
 
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
+use bevy::light::CascadeShadowConfigBuilder;
 
-const ROOM_MIN: Vec3 = Vec3::new(-2.5, 0.0, -2.5);
+const ROOM_MIN: Vec3 = Vec3::new(-3.0, 0.0, -2.5);
 const ROOM_MAX: Vec3 = Vec3::new(3.5, 2.6, 3.5);
-const LIGHT_POSITION: Vec3 = Vec3::new(0.6, 2.2, -1.5);
-const LIGHT_INTENSITY: f32 = 50_000.0;
-const AMBIENT_BRIGHTNESS: f32 = 4.0;
+/// Towards the light: from the front right, low enough that shadows land on the wall below
+/// and left of the objects like in the devlog captures.
+const LIGHT_DIRECTION: Vec3 = Vec3::new(0.25, 0.8, 1.0);
+const LIGHT_ILLUMINANCE: f32 = 950.0;
+const AMBIENT_BRIGHTNESS: f32 = 15.0;
 const SPHERE_SWING: f32 = 0.3;
 const SPHERE_SWING_SPEED: f32 = 1.1;
 
@@ -69,8 +71,15 @@ fn populate_scene(
     };
 
     props::populate_room(&mut builder, ROOM_MIN, ROOM_MAX);
+    for post_x in [-1.65, 0.8] {
+        props::populate_post(
+            &mut builder,
+            Transform::from_xyz(post_x, 0.0, ROOM_MIN.z),
+            ROOM_MAX.y,
+        );
+    }
 
-    let sphere_origin = vec3(-1.7, 0.0, -1.7);
+    let sphere_origin = vec3(-0.4, 0.0, -1.95);
     let sphere_stand =
         props::populate_sphere_stand(&mut builder, Transform::from_translation(sphere_origin));
     builder
@@ -83,32 +92,33 @@ fn populate_scene(
 
     props::populate_chair(
         &mut builder,
-        Transform::from_xyz(-1.3, 0.0, -1.3).with_rotation(Quat::from_rotation_y(FRAC_PI_4)),
+        Transform::from_xyz(-0.15, 0.0, -1.45).with_rotation(Quat::from_rotation_y(-0.35)),
     );
-    props::populate_barrel(&mut builder, Transform::from_xyz(-2.0, 0.0, -0.9));
-    props::populate_bench(&mut builder, Transform::from_xyz(-2.12, 0.0, 0.25));
-    props::populate_frame(
-        &mut builder,
-        Transform::from_xyz(ROOM_MIN.x, 1.75, -0.55)
-            .with_rotation(Quat::from_rotation_y(FRAC_PI_2)),
-    );
-    props::populate_chest(&mut builder, Transform::from_xyz(-0.6, 0.0, -2.12));
-    props::populate_shelf(&mut builder, Transform::from_xyz(-0.3, 1.95, ROOM_MIN.z));
+    props::populate_barrel(&mut builder, Transform::from_xyz(-1.3, 0.0, -1.75));
+    props::populate_bench(&mut builder, Transform::from_xyz(-2.7, 0.0, -1.0));
+    props::populate_frame(&mut builder, Transform::from_xyz(-2.25, 1.55, ROOM_MIN.z));
+    props::populate_chest(&mut builder, Transform::from_xyz(1.3, 0.0, -2.15));
+    props::populate_shelf(&mut builder, Transform::from_xyz(1.6, 1.6, ROOM_MIN.z));
 
     info!("num_regions {}", builder.next_region - 1);
 }
 
 fn populate_lights(mut commands: Commands) {
-    // hanging lantern, high on the right side of the cabin
     commands.spawn((
-        PointLight {
+        DirectionalLight {
             color: Color::WHITE,
-            intensity: LIGHT_INTENSITY,
-            range: 20.0,
+            illuminance: LIGHT_ILLUMINANCE,
             shadow_maps_enabled: true,
             ..default()
         },
-        Transform::from_translation(LIGHT_POSITION),
+        Transform::from_translation(LIGHT_DIRECTION).looking_at(Vec3::ZERO, Vec3::Y),
+        // the cabin is small, a single cascade keeps the shadows sharp
+        CascadeShadowConfigBuilder {
+            num_cascades: 1,
+            maximum_distance: 10.0,
+            ..default()
+        }
+        .build(),
     ));
 }
 
@@ -117,11 +127,10 @@ fn animate_sphere(
     settings: Res<SceneSettings>,
     mut spheres: Query<(&mut AnimatedSphere, &mut Transform)>,
 ) {
-    let sideways = vec3(1.0, 0.0, -1.0).normalize();
     for (mut sphere, mut transform) in &mut spheres {
         if settings.move_sphere {
             sphere.phase += SPHERE_SWING_SPEED * time.delta_secs();
         }
-        transform.translation = sphere.origin + sideways * SPHERE_SWING * sphere.phase.sin();
+        transform.translation = sphere.origin + Vec3::X * SPHERE_SWING * sphere.phase.sin();
     }
 }

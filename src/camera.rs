@@ -8,9 +8,9 @@ const MOVE_SPEED: f32 = 1.5;
 const KEY_TURN_SPEED: f32 = 1.2;
 const MOUSE_SENSITIVITY: f32 = 0.003;
 const PITCH_LIMIT: f32 = 1.4;
-const ROOM_MIN: Vec2 = Vec2::new(-2.1, -2.1);
+const ROOM_MIN: Vec2 = Vec2::new(-2.6, -2.1);
 const ROOM_MAX: Vec2 = Vec2::new(3.1, 3.1);
-const EYE_HEIGHT: f32 = 1.45;
+const EYE_HEIGHT: f32 = 1.3;
 const PAN_AMPLITUDE: f32 = 0.35;
 const PAN_SPEED: f32 = 0.7;
 
@@ -40,10 +40,10 @@ pub struct FirstPersonCamera {
 }
 
 impl Default for FirstPersonCamera {
-    /// Looking into the cabin corner with the chair and the sphere.
+    /// Facing the back wall, slightly looking down, framed like the devlog captures.
     fn default() -> Self {
-        let position = vec3(0.25, EYE_HEIGHT, 0.25);
-        let direction = vec3(-1.5, 0.95, -1.5) - position;
+        let position = vec3(0.0, EYE_HEIGHT, 0.7);
+        let direction = vec3(0.0, 0.6, -2.5) - position;
         Self {
             position,
             yaw: (-direction.x).atan2(-direction.z),
