@@ -4,8 +4,8 @@
 
 A recreation in Bevy of the 1-bit rendering experiments from Lucas Pope's
 [Return of the Obra Dinn devlog](https://dukope.com/devlogs/obra-dinn/tig-32/) ("Fullscreen, Round 3"),
-in a similar test scene: a ship's cabin corner with a chair, a sphere on a stand, a barrel, a bench,
-a framed picture, a sea chest and a wall shelf.
+in a similar test scene: a ship's cabin wall with a framed picture, a barrel, a sphere on a stand,
+a chair, a sea chest, a wall shelf and a bench, lit by a single lamp.
 
 * Install a >1.97.0 rust toolchain.
 * Use `cargo run --release` to start the demo.
@@ -19,7 +19,9 @@ a framed picture, a sea chest and a wall shelf.
   region ids for the wireframe lines and view depth.
 * A post-processing pass converts it to 1-bit at 800x450 by comparing each pixel to a dither pattern:
   an 8x8 bayer matrix (sphere) or a 128x128 blue noise field (everything else).
-* The result is upscaled to the window with a two color palette.
+* The result is upscaled to the window by a whole number factor with a two color palette.
+* A flat gray probe disc in the bottom left corner shows how the current mapping moves the bayer
+  pattern, like the inset in the devlog captures.
 
 ## Dither pattern mappings
 
@@ -30,25 +32,22 @@ a framed picture, a sea chest and a wall shelf.
 * `cube`: pattern on a world aligned cube around the camera.
 * `sphere`: pattern on a "rings" mapped sphere around the camera, best with 2x supersampling.
 
-## Presets
-
-* `F1` DIGITAL: border-boxed, screenspace offset dither, 1-bit output.
-* `F2` ANALOG: fullscreen, sphere-mapped dither, 2x supersampling, softened output.
-
 ## Keyboard and mouse controls
+
+All the options are also in the settings panel in the top right corner.
 
 * 1-6: dither pattern mapping.
 * V: view, either 1-bit output, 8-bit source, dither pattern or flat gray.
 * B: dither pattern, per object, bayer or blue noise.
 * P: palette.
-* F: display, digital or analog.
 * X: 2x supersampling.
 * T: final 50% threshold after downsampling.
 * E: wireframe edges.
+* C: pattern probe.
 * Right mouse drag or arrows: look around.
 * WASD: walk.
 * Space: auto pan.
 * M: move the sphere.
-* H: hide the ui.
+* H: hide the settings panel.
 * F12: save a snapshot.
 * Escape: quit.

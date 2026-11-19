@@ -9,15 +9,11 @@ use crate::patterns::DitherPatterns;
 
 use bevy::prelude::*;
 
-use bevy::light::CascadeShadowConfigBuilder;
-
 const ROOM_MIN: Vec3 = Vec3::new(-3.0, 0.0, -2.5);
 const ROOM_MAX: Vec3 = Vec3::new(3.5, 2.6, 3.5);
-/// Towards the light: from the front right, low enough that shadows land on the wall below
-/// and left of the objects like in the devlog captures.
-const LIGHT_DIRECTION: Vec3 = Vec3::new(0.25, 0.8, 1.0);
-const LIGHT_ILLUMINANCE: f32 = 950.0;
-const AMBIENT_BRIGHTNESS: f32 = 15.0;
+const LIGHT_POSITION: Vec3 = Vec3::new(0.5, 2.2, -1.2);
+const LIGHT_INTENSITY: f32 = 4e4;
+const AMBIENT_BRIGHTNESS: f32 = 4.0;
 const SPHERE_SWING: f32 = 0.3;
 const SPHERE_SWING_SPEED: f32 = 1.1;
 
@@ -105,20 +101,14 @@ fn populate_scene(
 
 fn populate_lights(mut commands: Commands) {
     commands.spawn((
-        DirectionalLight {
+        PointLight {
             color: Color::WHITE,
-            illuminance: LIGHT_ILLUMINANCE,
+            intensity: LIGHT_INTENSITY,
+            range: 20.0,
             shadow_maps_enabled: true,
             ..default()
         },
-        Transform::from_translation(LIGHT_DIRECTION).looking_at(Vec3::ZERO, Vec3::Y),
-        // the cabin is small, a single cascade keeps the shadows sharp
-        CascadeShadowConfigBuilder {
-            num_cascades: 1,
-            maximum_distance: 10.0,
-            ..default()
-        }
-        .build(),
+        Transform::from_translation(LIGHT_POSITION),
     ));
 }
 

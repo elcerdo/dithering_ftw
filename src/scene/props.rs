@@ -56,7 +56,7 @@ impl Builder<'_, '_, '_> {
         entity.id()
     }
 
-    /// Room shell part, it lets the light in from outside the cabin.
+    /// Room shell part, it doesn't cast shadows.
     pub fn shell_part(
         &mut self,
         mesh: impl Into<Mesh>,
