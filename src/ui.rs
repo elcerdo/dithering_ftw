@@ -22,17 +22,15 @@ const MAPPING_KEYS: [KeyCode; 6] = [
     KeyCode::Digit5,
     KeyCode::Digit6,
 ];
-const CONTROLS: [(&str, &str); 16] = [
+const CONTROLS: [(&str, &str); 14] = [
     ("1-6", "mapping"),
     ("V", "view"),
     ("B", "pattern"),
     ("P", "palette"),
-    ("F", "display"),
     ("X", "2x supersample"),
     ("T", "final threshold"),
     ("E", "edges"),
     ("C", "pattern probe"),
-    ("F1 F2", "digital / analog"),
     ("RMB drag", "look"),
     ("arrows", "look"),
     ("WASD", "walk"),
@@ -80,15 +78,6 @@ fn next<T: Copy + PartialEq>(items: &[(T, &str)], value: T) -> T {
     items[(index + 1) % items.len()].0
 }
 
-/// Presets leave the palette and the probe alone.
-fn apply_preset(settings: &mut DitherSettings, preset: DitherSettings) {
-    *settings = DitherSettings {
-        palette: settings.palette,
-        probe: settings.probe,
-        ..preset
-    };
-}
-
 pub fn keyboard_shortcuts(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut settings: ResMut<DitherSettings>,
@@ -111,9 +100,6 @@ pub fn keyboard_shortcuts(
     if keyboard.just_pressed(KeyCode::KeyP) {
         new_settings.palette = (new_settings.palette + 1) % PALETTES.len();
     }
-    if keyboard.just_pressed(KeyCode::KeyF) {
-        new_settings.fit = next(&FITS, new_settings.fit);
-    }
     let toggles = [
         (KeyCode::KeyX, &mut new_settings.supersample),
         (KeyCode::KeyT, &mut new_settings.final_threshold),
@@ -124,12 +110,6 @@ pub fn keyboard_shortcuts(
         if keyboard.just_pressed(key) {
             *value ^= true;
         }
-    }
-    if keyboard.just_pressed(KeyCode::F1) {
-        apply_preset(&mut new_settings, DitherSettings::digital());
-    }
-    if keyboard.just_pressed(KeyCode::F2) {
-        apply_preset(&mut new_settings, DitherSettings::analog());
     }
     settings.set_if_neq(new_settings);
 
@@ -213,20 +193,10 @@ fn settings_panel(
             combo(ui, "view", &mut new_settings.view, &VIEW_MODES);
             combo(ui, "pattern", &mut new_settings.pattern, &PATTERN_MODES);
             combo(ui, "palette", &mut new_settings.palette, &palettes);
-            combo(ui, "display", &mut new_settings.fit, &FITS);
             ui.checkbox(&mut new_settings.supersample, "2x supersample");
             ui.checkbox(&mut new_settings.final_threshold, "final threshold");
             ui.checkbox(&mut new_settings.edges, "edges");
             ui.checkbox(&mut new_settings.probe, "pattern probe");
-            ui.horizontal(|ui| {
-                ui.label("preset");
-                if ui.button("digital").clicked() {
-                    apply_preset(&mut new_settings, DitherSettings::digital());
-                }
-                if ui.button("analog").clicked() {
-                    apply_preset(&mut new_settings, DitherSettings::analog());
-                }
-            });
             ui.separator();
 
             ui.checkbox(&mut auto_pan, "auto pan");

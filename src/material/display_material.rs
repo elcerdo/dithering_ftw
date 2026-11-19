@@ -1,4 +1,4 @@
-//! Display pass: upscales the low resolution output to the window and applies the palette.
+//! Display pass: integer upscales the low resolution output to the window and applies the palette.
 
 use bevy::prelude::*;
 
@@ -13,10 +13,6 @@ pub struct DisplayParams {
     pub color_dark: Vec4,
     pub color_light: Vec4,
     pub source_size: Vec2,
-    /// Physical window pixels per source pixel.
-    pub texel_scale: f32,
-    /// Sharp bilinear filtering instead of nearest neighbor.
-    pub sharp_bilinear: u32,
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]

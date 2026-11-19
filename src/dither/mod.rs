@@ -310,11 +310,8 @@ fn update_display_pass(
     };
     let physical_size = window.physical_size().as_vec2();
     let output_size = OUTPUT_SIZE.as_vec2();
-    let fit_scale = (physical_size / output_size).min_element();
-    let scale = match settings.fit {
-        Fit::Digital => fit_scale.floor().max(1.0),
-        Fit::Analog => fit_scale,
-    };
+    // border boxed integer upscaling keeps every output pixel the same size
+    let scale = (physical_size / output_size).min_element().floor().max(1.0);
 
     // align the quad corners to physical pixels
     let quad_size = output_size * scale;
@@ -336,8 +333,6 @@ fn update_display_pass(
             color_dark: LinearRgba::from(dark).to_vec4(),
             color_light: LinearRgba::from(light).to_vec4(),
             source_size: output_size,
-            texel_scale: scale,
-            sharp_bilinear: (settings.fit == Fit::Analog) as u32,
         };
         material.source_texture = pipeline.dither_images[pipeline.current].clone();
     }

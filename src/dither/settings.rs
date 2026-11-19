@@ -49,16 +49,6 @@ pub const PATTERN_MODES: [(PatternMode, &str); 3] = [
     (PatternMode::BlueNoise, "blue noise"),
 ];
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Fit {
-    /// Border boxed, integer upscaling, crisp pixels.
-    Digital,
-    /// Fills the window, sharp bilinear upscaling.
-    Analog,
-}
-
-pub const FITS: [(Fit, &str); 2] = [(Fit::Digital, "digital"), (Fit::Analog, "analog")];
-
 /// (name, dark, light) in sRGB.
 pub const PALETTES: [(&str, [u8; 3], [u8; 3]); 4] = [
     ("obra dinn", [0x33, 0x33, 0x19], [0xe5, 0xff, 0xff]),
@@ -76,41 +66,10 @@ pub struct DitherSettings {
     pub final_threshold: bool,
     pub edges: bool,
     pub palette: usize,
-    pub fit: Fit,
     pub probe: bool,
 }
 
 impl DitherSettings {
-    /// Shipped "DIGITAL" mode: border-boxed, screenspace offset dither, 1-bit output.
-    pub fn digital() -> Self {
-        Self {
-            mapping: Mapping::ScreenOffset,
-            view: ViewMode::Output,
-            pattern: PatternMode::PerObject,
-            supersample: false,
-            final_threshold: true,
-            edges: true,
-            palette: 0,
-            fit: Fit::Digital,
-            probe: true,
-        }
-    }
-
-    /// Shipped "ANALOG" mode: fullscreen, sphere-mapped dither, softened output.
-    pub fn analog() -> Self {
-        Self {
-            mapping: Mapping::Sphere,
-            view: ViewMode::Output,
-            pattern: PatternMode::PerObject,
-            supersample: true,
-            final_threshold: false,
-            edges: true,
-            palette: 0,
-            fit: Fit::Analog,
-            probe: true,
-        }
-    }
-
     pub fn palette_colors(&self) -> (Srgba, Srgba) {
         let (_, dark, light) = PALETTES[self.palette % PALETTES.len()];
         (
@@ -121,7 +80,17 @@ impl DitherSettings {
 }
 
 impl Default for DitherSettings {
+    /// Screenspace offset dither, 1-bit output.
     fn default() -> Self {
-        Self::digital()
+        Self {
+            mapping: Mapping::ScreenOffset,
+            view: ViewMode::Output,
+            pattern: PatternMode::PerObject,
+            supersample: false,
+            final_threshold: true,
+            edges: true,
+            palette: 0,
+            probe: true,
+        }
     }
 }
