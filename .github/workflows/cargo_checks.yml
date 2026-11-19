@@ -18,6 +18,6 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libasound2-dev libudev-dev pkg-config
+          sudo apt-get install --yes libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev pkg-config
       - name: Check release targets
         run: cargo check --release --all-targets
