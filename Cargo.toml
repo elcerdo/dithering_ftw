@@ -1,0 +1,13 @@
+[package]
+name = "dithering_ftw"
+edition = "2024"
+rust-version = "1.97.1"
+version = "0.1.0"
+authors = ["pierre.gueth@gmail.com"]
+
+[features]
+debug_gizmos = []
+
+[dependencies]
+log = { version = "0.4.35", features = ["std"] }
+bevy = { version = "0.20.1", features = ["webgpu", "web"] }
