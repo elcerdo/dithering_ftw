@@ -7,10 +7,10 @@ use crate::global_state::GlobalState;
 use crate::material::scene_material::SceneMaterial;
 use crate::patterns::DitherPatterns;
 
+use bevy::gltf::{Gltf, GltfMesh, GltfNode};
 use bevy::prelude::*;
 
-const ROOM_MIN: Vec3 = Vec3::new(-3.0, 0.0, -2.5);
-const ROOM_MAX: Vec3 = Vec3::new(3.5, 2.6, 3.5);
+const BACK_WALL_Z: f32 = -2.5;
 const LIGHT_POSITION: Vec3 = Vec3::new(0.5, 2.2, -1.2);
 const LIGHT_INTENSITY: f32 = 4e4;
 const AMBIENT_BRIGHTNESS: f32 = 4.0;
@@ -28,10 +28,9 @@ impl Plugin for ScenePlugin {
             brightness: AMBIENT_BRIGHTNESS,
             ..default()
         });
-        app.add_systems(
-            OnEnter(GlobalState::Ready),
-            (populate_scene, populate_lights).chain(),
-        );
+        app.add_systems(Startup, props::load_props);
+        app.add_systems(OnEnter(GlobalState::Ready), populate_lights);
+        app.add_systems(Update, populate_scene.run_if(props::props_ready));
         app.add_systems(Update, animate_sphere.run_if(in_state(GlobalState::Ready)));
     }
 }
@@ -52,32 +51,38 @@ struct AnimatedSphere {
 
 fn populate_scene(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
+    props: Res<props::PropAssets>,
+    gltfs: Res<Assets<Gltf>>,
+    nodes: Res<Assets<GltfNode>>,
+    meshes: Res<Assets<GltfMesh>>,
     mut materials: ResMut<Assets<SceneMaterial>>,
     patterns: Res<DitherPatterns>,
+    mut populated: Local<bool>,
 ) {
+    if *populated {
+        return;
+    }
+    *populated = true;
     info!("** populate_scene **");
 
     let mut builder = props::Builder {
         commands: &mut commands,
-        meshes: &mut meshes,
+        props: &props,
+        gltfs: &gltfs,
+        nodes: &nodes,
+        meshes: &meshes,
         materials: &mut materials,
         patterns: &patterns,
         next_region: 1,
     };
 
-    props::populate_room(&mut builder, ROOM_MIN, ROOM_MAX);
+    builder.spawn("room", Transform::IDENTITY);
     for post_x in [-1.65, 0.8] {
-        props::populate_post(
-            &mut builder,
-            Transform::from_xyz(post_x, 0.0, ROOM_MIN.z),
-            ROOM_MAX.y,
-        );
+        builder.spawn("post", Transform::from_xyz(post_x, 0.0, BACK_WALL_Z));
     }
 
     let sphere_origin = vec3(-0.4, 0.0, -1.95);
-    let sphere_stand =
-        props::populate_sphere_stand(&mut builder, Transform::from_translation(sphere_origin));
+    let sphere_stand = builder.spawn("sphere_stand", Transform::from_translation(sphere_origin));
     builder
         .commands
         .entity(sphere_stand)
@@ -86,15 +91,15 @@ fn populate_scene(
             phase: 0.0,
         });
 
-    props::populate_chair(
-        &mut builder,
+    builder.spawn(
+        "chair",
         Transform::from_xyz(-0.15, 0.0, -1.45).with_rotation(Quat::from_rotation_y(-0.35)),
     );
-    props::populate_barrel(&mut builder, Transform::from_xyz(-1.3, 0.0, -1.75));
-    props::populate_bench(&mut builder, Transform::from_xyz(-2.7, 0.0, -1.0));
-    props::populate_frame(&mut builder, Transform::from_xyz(-2.25, 1.55, ROOM_MIN.z));
-    props::populate_chest(&mut builder, Transform::from_xyz(1.3, 0.0, -2.15));
-    props::populate_shelf(&mut builder, Transform::from_xyz(1.6, 1.6, ROOM_MIN.z));
+    builder.spawn("barrel", Transform::from_xyz(-1.3, 0.0, -1.75));
+    builder.spawn("bench", Transform::from_xyz(-2.7, 0.0, -1.0));
+    builder.spawn("frame", Transform::from_xyz(-2.25, 1.55, BACK_WALL_Z));
+    builder.spawn("chest", Transform::from_xyz(1.3, 0.0, -2.15));
+    builder.spawn("shelf", Transform::from_xyz(1.6, 1.6, BACK_WALL_Z));
 
     info!("num_regions {}", builder.next_region - 1);
 }
